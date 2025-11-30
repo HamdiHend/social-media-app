@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Configurer Docker Hub
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 3. Build des images Docker
+      - name: Build backend Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:v1 ./server
+
+      - name: Build frontend Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:v1 ./client
+
+      # 4. Push vers Docker Hub
+      - name: Push images
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:v1
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:v1
+
+      # 5. Installer kubectl
+      - name: Install kubectl
+        run: |
+          sudo snap install kubectl --classic
+
+      # 6. Charger kubeconfig
+      - name: Set kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+
+      # 7. Déployer sur Kubernetes
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/mongo-deployment.yaml
+          kubectl apply -f k8s/mongo-service.yaml
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/backend-service.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
+          kubectl apply -f k8s/frontend-service.yaml
