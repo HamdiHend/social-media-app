@@ -9,21 +9,25 @@ jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2. Login Docker Hub
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3. Build Docker images
       - name: Build backend Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:v1 ./server
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:v1 ./backend
 
       - name: Build frontend Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:v1 ./client
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:v1 ./frontend
 
+      # 4. Push Docker images
       - name: Push Docker images
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:v1
